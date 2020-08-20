@@ -20,6 +20,7 @@ class FastRCNNLossComputation(object):
 
     def __init__(
         self,
+        cfg,
         proposal_matcher,
         fg_bg_sampler,
         box_coder,
@@ -35,6 +36,11 @@ class FastRCNNLossComputation(object):
         self.fg_bg_sampler = fg_bg_sampler
         self.box_coder = box_coder
         self.cls_agnostic_bbox_reg = cls_agnostic_bbox_reg
+        self.class_weights = [cfg.MODEL.ROI_BOX_HEAD.LOSS_WEIGHT_BACKGROUND
+            ] + [1.0] * (cfg.MODEL.ROI_BOX_HEAD.NUM_CLASSES - 1)
+        self.class_weights = torch.tensor(self.class_weights).cuda()
+        self.loss_fn = torch.nn.CrossEntropyLoss(
+            weight=self.class_weights, reduction='sum')
 
     def match_targets_to_proposals(self, proposal, target):
         match_quality_matrix = boxlist_iou(target, proposal)
@@ -143,8 +149,6 @@ class FastRCNNLossComputation(object):
             [proposal.get_field("regression_targets") for proposal in proposals], dim=0
         )
 
-        classification_loss = F.cross_entropy(class_logits, labels)
-
         # get indices that correspond to the regression targets for
         # the corresponding ground truth labels, to be used with
         # advanced indexing
@@ -163,6 +167,8 @@ class FastRCNNLossComputation(object):
             beta=1,
         )
         box_loss = box_loss / labels.numel()
+
+        classification_loss = self.loss_fn(class_logits, labels) / labels.numel()
 
         return classification_loss, box_loss
 
@@ -184,6 +190,7 @@ def make_roi_box_loss_evaluator(cfg):
     cls_agnostic_bbox_reg = cfg.MODEL.CLS_AGNOSTIC_BBOX_REG
 
     loss_evaluator = FastRCNNLossComputation(
+        cfg,
         matcher,
         fg_bg_sampler,
         box_coder,

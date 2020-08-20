@@ -1,0 +1,38 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  WEIGHT: "/home/user/checkpoints/virtex/bicaptioning_R_50_L1_H2048.pth"
+  BACKBONE_PREFIX: "visual.cnn."
+  LOAD_TRAINER_STATE: False
+  CLS_AGNOSTIC_BBOX_REG: True
+  ROI_BOX_HEAD:
+    NUM_CLASSES: 49
+    EMB_DIM: 768
+    EMBEDDING_BASED: True
+    LOSS_WEIGHT_BACKGROUND: 0.0
+  ROI_HEADS:
+    POSITIVE_FRACTION: 1.0
+  BACKBONE:
+    FREEZE_CONV_BODY_AT: 2
+  RESNETS:
+    STRIDE_IN_1X1: False
+INPUT:
+  TO_BGR255: False
+  PIXEL_MEAN: [0.485, 0.456, 0.406]
+  PIXEL_STD: [0.229, 0.224, 0.225]
+DATASETS:
+  TRAIN: ("coco_zeroshot_train",)
+  TEST: ("coco_not_zeroshot_val", "coco_zeroshot_val", "coco_generalized_zeroshot_val")
+  DATASET_CLASS: "COCODataset"
+  DATASET_ARGS: 
+    LOAD_EMBEDDINGS: True
+    EMB_KEY: "BertEmb"
+    EMB_DIM: 768
+SOLVER:
+  BASE_LR: 0.005
+  WEIGHT_DECAY: 0.0001
+  STEPS: (60000, 120000)
+  MAX_ITER: 150000
+  IMS_PER_BATCH: 8
+  TEST_PERIOD: 10000
+TEST:
+  IMS_PER_BATCH: 8

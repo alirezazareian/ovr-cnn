@@ -3,6 +3,7 @@ import datetime
 import logging
 import os
 import time
+import collections
 
 import torch
 import torch.distributed as dist
@@ -40,6 +41,16 @@ def reduce_loss_dict(loss_dict):
     return reduced_losses
 
 
+def write_tf_summary(dictionary, tb_logger, iteration, prefix=''):
+    if dist.get_rank() != 0 or tb_logger is None: return
+    for k, v in dictionary.items():
+        k2 = f'{prefix}/{k}'
+        if isinstance(v, collections.Mapping):
+            write_tf_summary(v, tb_logger, iteration, prefix=k2)
+        else:
+            tb_logger.add_scalar(k2, v, iteration)
+
+
 def do_train(
     cfg,
     model,
@@ -52,6 +63,7 @@ def do_train(
     checkpoint_period,
     test_period,
     arguments,
+    tb_logger,
 ):
     logger = logging.getLogger("maskrcnn_benchmark.trainer")
     logger.info("Start training")
@@ -69,6 +81,12 @@ def do_train(
         iou_types = iou_types + ("keypoints",)
     dataset_names = cfg.DATASETS.TEST
 
+    module = model.module if isinstance(model, torch.nn.parallel.DistributedDataParallel) else model
+    if hasattr(module, 'roi_heads') and 'box' in module.roi_heads:
+        if module.roi_heads['box'].predictor.embedding_based:
+            module.roi_heads['box'].predictor.set_class_embeddings(
+                data_loader.dataset.class_emb_mtx)
+    
     for iteration, (images, targets, _) in enumerate(data_loader, start_iter):
         
         if any(len(target) < 1 for target in targets):
@@ -79,24 +97,44 @@ def do_train(
         arguments["iteration"] = iteration
 
         images = images.to(device)
-        targets = [target.to(device) for target in targets]
+        try:
+            targets = [target.to(device) for target in targets]
+        except:
+            pass
 
+        # with torch.autograd.detect_anomaly():
         loss_dict = model(images, targets)
 
+        if isinstance(loss_dict, tuple):
+            info_dict, loss_dict = loss_dict
+        else:
+            info_dict = None
+
         losses = sum(loss for loss in loss_dict.values())
+        losses = losses / float(cfg.SOLVER.GRADIENT_ACCUMULATION_STEPS)
 
         # reduce losses over all GPUs for logging purposes
         loss_dict_reduced = reduce_loss_dict(loss_dict)
         losses_reduced = sum(loss for loss in loss_dict_reduced.values())
-        meters.update(loss=losses_reduced, **loss_dict_reduced)
+        loss_dict_reduced['loss'] = losses_reduced
+        meters.update(**loss_dict_reduced)
 
-        optimizer.zero_grad()
+        if info_dict is not None:
+            info_dict_reduced = reduce_loss_dict(info_dict)
+            meters.update(**info_dict_reduced)
+
         # Note: If mixed precision is not used, this ends up doing nothing
         # Otherwise apply loss scaling for mixed-precision recipe
         with amp.scale_loss(losses, optimizer) as scaled_losses:
             scaled_losses.backward()
-        optimizer.step()
-        scheduler.step()
+
+        if iteration % cfg.SOLVER.GRADIENT_ACCUMULATION_STEPS == 0:
+            if cfg.SOLVER.CLIP_GRAD_NORM_AT > 0:
+                torch.nn.utils.clip_grad_norm_(
+                    model.parameters(), cfg.SOLVER.CLIP_GRAD_NORM_AT)
+            optimizer.step()
+            scheduler.step()
+            optimizer.zero_grad()
 
         batch_time = time.time() - end
         end = time.time()
@@ -105,7 +143,11 @@ def do_train(
         eta_seconds = meters.time.global_avg * (max_iter - iteration)
         eta_string = str(datetime.timedelta(seconds=int(eta_seconds)))
 
-        if iteration % 20 == 0 or iteration == max_iter:
+        if iteration % cfg.SOLVER.LOG_PERIOD == 0 or iteration == max_iter:
+            write_tf_summary(loss_dict_reduced, tb_logger, iteration, prefix='train')
+            if info_dict is not None:
+                write_tf_summary(info_dict_reduced, tb_logger, iteration, prefix='train')
+
             logger.info(
                 meters.delimiter.join(
                     [
@@ -125,34 +167,59 @@ def do_train(
             )
         if iteration % checkpoint_period == 0:
             checkpointer.save("model_{:07d}".format(iteration), **arguments)
-        if data_loader_val is not None and test_period > 0 and iteration % test_period == 0:
+        if test_period > 0 and iteration % test_period == 0:
             meters_val = MetricLogger(delimiter="  ")
             synchronize()
-            _ = inference(  # The result can be used for additional logging, e. g. for TensorBoard
-                model,
-                # The method changes the segmentation mask format in a data loader,
-                # so every time a new data loader is created:
-                make_data_loader(cfg, is_train=False, is_distributed=(get_world_size() > 1), is_for_period=True),
-                dataset_name="[Validation]",
-                iou_types=iou_types,
-                box_only=False if cfg.MODEL.RETINANET_ON else cfg.MODEL.RPN_ONLY,
-                device=cfg.MODEL.DEVICE,
-                expected_results=cfg.TEST.EXPECTED_RESULTS,
-                expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
-                output_folder=None,
-            )
-            synchronize()
-            model.train()
+            if cfg.TEST.DO_EVAL:
+                dl_val_list = make_data_loader(cfg, is_train=False, is_distributed=(get_world_size() > 1))
+                for dl, dname in zip(dl_val_list, cfg.DATASETS.TEST):
+                    val_results = inference(
+                        model,
+                        dl,
+                        dataset_name=dname,
+                        iou_types=iou_types,
+                        box_only=False if cfg.MODEL.RETINANET_ON else cfg.MODEL.RPN_ONLY,
+                        device=cfg.MODEL.DEVICE,
+                        expected_results=cfg.TEST.EXPECTED_RESULTS,
+                        expected_results_sigma_tol=cfg.TEST.EXPECTED_RESULTS_SIGMA_TOL,
+                        output_folder=None,
+                    )
+                    synchronize()
+
+                    if val_results is not None:
+                        val_results, _ = val_results
+                        val_results = val_results.results
+                        write_tf_summary(val_results, tb_logger, iteration, prefix=f'validation/{dname}')
+
+                if hasattr(module, 'roi_heads') and 'box' in module.roi_heads:
+                    if module.roi_heads['box'].predictor.embedding_based:
+                        module.roi_heads['box'].predictor.set_class_embeddings(
+                            data_loader.dataset.class_emb_mtx)
+
             with torch.no_grad():
-                # Should be one image for each GPU:
+                if cfg.SOLVER.USE_TRAIN_MODE_FOR_VALIDATION_LOSS:
+                    model.train()
+                else:
+                    model.eval()
                 for iteration_val, (images_val, targets_val, _) in enumerate(tqdm(data_loader_val)):
                     images_val = images_val.to(device)
-                    targets_val = [target.to(device) for target in targets_val]
+                    try:
+                        targets_val = [target.to(device) for target in targets_val]
+                    except:
+                        pass
                     loss_dict = model(images_val, targets_val)
+                    if isinstance(loss_dict, tuple):
+                        info_dict, loss_dict = loss_dict
+                    else:
+                        info_dict = None
                     losses = sum(loss for loss in loss_dict.values())
                     loss_dict_reduced = reduce_loss_dict(loss_dict)
                     losses_reduced = sum(loss for loss in loss_dict_reduced.values())
                     meters_val.update(loss=losses_reduced, **loss_dict_reduced)
+                    if info_dict is not None:
+                        info_dict_reduced = reduce_loss_dict(info_dict)
+                        meters_val.update(**info_dict_reduced)
+            model.train()
             synchronize()
             logger.info(
                 meters_val.delimiter.join(
@@ -172,6 +239,11 @@ def do_train(
                     memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0,
                 )
             )
+
+            meters_val_dict = {k: v.global_avg for k, v in meters_val.meters.items()}
+            write_tf_summary(meters_val_dict, tb_logger, iteration,
+                             prefix=f'validation/{cfg.DATASETS.TEST[0]}')
+
         if iteration == max_iter:
             checkpointer.save("model_final", **arguments)
 

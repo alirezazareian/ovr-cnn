@@ -77,6 +77,14 @@ def inference(
     num_devices = get_world_size()
     logger = logging.getLogger("maskrcnn_benchmark.inference")
     dataset = data_loader.dataset
+    
+    # zero-shot models should have class embeddings for inference to map predicted embeddings to classes
+    module = model.module if isinstance(model, torch.nn.parallel.DistributedDataParallel) else model
+    if hasattr(module, 'roi_heads') and 'box' in module.roi_heads:
+        if module.roi_heads['box'].predictor.embedding_based:
+            module.roi_heads['box'].predictor.set_class_embeddings(
+                data_loader.dataset.class_emb_mtx)
+    
     logger.info("Start evaluation on {} dataset({} images).".format(dataset_name, len(dataset)))
     total_timer = Timer()
     inference_timer = Timer()

@@ -54,12 +54,11 @@ class Resize(object):
 
         return (oh, ow)
 
-    def __call__(self, image, target=None):
+    def __call__(self, image, target):
         size = self.get_size(image.size)
         image = F.resize(image, size)
-        if target is None:
-            return image
-        target = target.resize(image.size)
+        if target is not None:
+            target = target.resize(image.size)
         return image, target
 
 
@@ -70,7 +69,8 @@ class RandomHorizontalFlip(object):
     def __call__(self, image, target):
         if random.random() < self.prob:
             image = F.hflip(image)
-            target = target.transpose(0)
+            if target is not None:
+                target = target.transpose(0)
         return image, target
 
 class RandomVerticalFlip(object):
@@ -80,7 +80,8 @@ class RandomVerticalFlip(object):
     def __call__(self, image, target):
         if random.random() < self.prob:
             image = F.vflip(image)
-            target = target.transpose(1)
+            if target is not None:
+                target = target.transpose(1)
         return image, target
 
 class ColorJitter(object):
@@ -112,10 +113,8 @@ class Normalize(object):
         self.std = std
         self.to_bgr255 = to_bgr255
 
-    def __call__(self, image, target=None):
+    def __call__(self, image, target):
         if self.to_bgr255:
             image = image[[2, 1, 0]] * 255
         image = F.normalize(image, mean=self.mean, std=self.std)
-        if target is None:
-            return image
         return image, target

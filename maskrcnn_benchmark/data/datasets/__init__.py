@@ -6,10 +6,16 @@ from .concat_dataset import ConcatDataset
 from .abstract import AbstractDataset
 from .cityscapes import CityScapesDataset
 
+from .coco_captions import COCOCaptionsDataset
+from .conceptual_captions import ConCapDataset
+
 __all__ = [
     "COCODataset",
     "ConcatDataset",
     "PascalVOCDataset",
     "AbstractDataset",
     "CityScapesDataset",
+
+    "COCOCaptionsDataset",
+    "ConCapDataset",
 ]

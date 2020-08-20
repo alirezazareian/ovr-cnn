@@ -62,8 +62,12 @@ def im_detect_bbox_aug(model, images, device):
     # Apply NMS and limit the final detections
     results = []
     post_processor = make_roi_box_post_processor(cfg)
+    
+    module = model.module if isinstance(model, torch.nn.parallel.DistributedDataParallel) else model
+    num_classes = module.roi_heads['box'].predictor.num_classes
+
     for boxlist in boxlists:
-        results.append(post_processor.filter_results(boxlist, cfg.MODEL.ROI_BOX_HEAD.NUM_CLASSES))
+        results.append(post_processor.filter_results(boxlist, num_classes))
 
     return results
 

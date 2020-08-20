@@ -1,0 +1,58 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  # Initial weight to load from image-caption training
+  WEIGHT: "/home/user/runs/vltrain/121/model_0040000.pth"
+  # Trim the prefix of the checkpoint parameter names so they can be correctly loaded
+  BACKBONE_PREFIX: "backbone.body."
+  # Whether to load the vl_projection layer from the multimedia self-supervised learning head
+  # If true, it loads it from the default mmss head defined by MODEL.MMSS_HEAD.DEFAULT_HEAD
+  LOAD_EMB_PRED_FROM_MMSS_HEAD: True
+  # Set true when resuming training. Otherwise should be False to prevent loading trainer
+  # state from pretraining phase.
+  LOAD_TRAINER_STATE: False
+  # Always true for zero-shot settings, although it is false for regular Faster R-CNN
+  # If false, it learns a bounding box regression for each (seen) class separately
+  CLS_AGNOSTIC_BBOX_REG: True
+  ROI_BOX_HEAD:
+    # Note these are the number of classes for training only
+    NUM_CLASSES: 49
+    # Dimension of embeddings that will be loaded (300 for Glove, 768 for Bert)
+    EMB_DIM: 768
+    # Always true for zero-shot
+    EMBEDDING_BASED: True
+    # To balance background proposals vs. foreground. Especially important to tune for 
+    # zero-shot settings, because a value too large would push unseen classes to background.
+    LOSS_WEIGHT_BACKGROUND: 0.2
+    # Whether or not to freeze the vl_projection layer. True is better. Only works if
+    # MODEL.LOAD_EMB_PRED_FROM_MMSS_HEAD is true
+    FREEZE_EMB_PRED: True
+  ROI_HEADS:
+    # At most how much of a batch should be filled with positive boxes. In zero-shot setting
+    # having too many background hurts. Note 1.0 doesn't mean there won't be any background.
+    # It is unlikely to have 512 positive boxes, and the rest is always filled with background.
+    POSITIVE_FRACTION: 1.0
+  BACKBONE:
+    FREEZE_CONV_BODY_AT: 2
+DATASETS:
+  TRAIN: ("coco_zeroshot_train",)
+  TEST: ("coco_not_zeroshot_val", "coco_zeroshot_val", "coco_generalized_zeroshot_val")
+  DATASET_CLASS: "COCODataset"
+  DATASET_ARGS: 
+    # load embeddings from the annotation json. Note it doesn't work with original COCO json.
+    # First run ipynb/003.ipynb or ipynb/004.ipynb to add embeddings to annotations
+    LOAD_EMBEDDINGS: True
+    # The key for embedding to load. We have BertEmb and GloVE for now.
+    EMB_KEY: "BertEmb"
+    # Dimension of embeddings (300 for Glove, 768 for Bert)
+    EMB_DIM: 768
+SOLVER:
+  BASE_LR: 0.005
+  WEIGHT_DECAY: 0.0001
+  STEPS: (60000, 120000)
+  MAX_ITER: 150000
+  IMS_PER_BATCH: 8
+  CHECKPOINT_PERIOD: 10000
+  TEST_PERIOD: 10000
+  LOG_PERIOD: 100
+TEST:
+  IMS_PER_BATCH: 8

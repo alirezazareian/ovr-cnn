@@ -15,7 +15,8 @@ from .collate_batch import BatchCollator, BBoxAugCollator
 from .transforms import build_transforms
 
 
-def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True):
+def build_dataset(dataset_list, transforms, dataset_catalog, 
+                  is_train=True, dset_class=None, dset_args=None):
     """
     Arguments:
         dataset_list (list[str]): Contains the names of the datasets, i.e.,
@@ -32,15 +33,18 @@ def build_dataset(dataset_list, transforms, dataset_catalog, is_train=True):
     datasets = []
     for dataset_name in dataset_list:
         data = dataset_catalog.get(dataset_name)
-        factory = getattr(D, data["factory"])
+        if dset_class is None or dset_class is "":
+            dset_class = data["factory"]
+        factory = getattr(D, dset_class)
         args = data["args"]
         # for COCODataset, we want to remove images without annotations
         # during training
-        if data["factory"] == "COCODataset":
-            args["remove_images_without_annotations"] = is_train
-        if data["factory"] == "PascalVOCDataset":
+        if dset_class == "COCODataset" or dset_class == "COCOCaptionsDataset":
+            args["remove_images_without_annotations"] = True
+        if dset_class == "PascalVOCDataset":
             args["use_difficult"] = not is_train
         args["transforms"] = transforms
+        args["extra_args"] = dset_args
         # make dataset from factory
         dataset = factory(**args)
         datasets.append(dataset)
@@ -84,7 +88,8 @@ def _compute_aspect_ratios(dataset):
 
 
 def make_batch_data_sampler(
-    dataset, sampler, aspect_grouping, images_per_batch, num_iters=None, start_iter=0
+    dataset, sampler, aspect_grouping, images_per_batch,
+    num_iters=None, start_iter=0, drop_last=False
 ):
     if aspect_grouping:
         if not isinstance(aspect_grouping, (list, tuple)):
@@ -92,11 +97,11 @@ def make_batch_data_sampler(
         aspect_ratios = _compute_aspect_ratios(dataset)
         group_ids = _quantize(aspect_ratios, aspect_grouping)
         batch_sampler = samplers.GroupedBatchSampler(
-            sampler, group_ids, images_per_batch, drop_uneven=False
+            sampler, group_ids, images_per_batch, drop_uneven=drop_last
         )
     else:
         batch_sampler = torch.utils.data.sampler.BatchSampler(
-            sampler, images_per_batch, drop_last=False
+            sampler, images_per_batch, drop_last=drop_last
         )
     if num_iters is not None:
         batch_sampler = samplers.IterationBasedBatchSampler(
@@ -105,7 +110,7 @@ def make_batch_data_sampler(
     return batch_sampler
 
 
-def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, is_for_period=False):
+def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0):
     num_gpus = get_world_size()
     if is_train:
         images_per_batch = cfg.SOLVER.IMS_PER_BATCH
@@ -153,7 +158,9 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, is_
 
     # If bbox aug is enabled in testing, simply set transforms to None and we will apply transforms later
     transforms = None if not is_train and cfg.TEST.BBOX_AUG.ENABLED else build_transforms(cfg, is_train)
-    datasets = build_dataset(dataset_list, transforms, DatasetCatalog, is_train or is_for_period)
+    datasets = build_dataset(dataset_list, 
+                             transforms, DatasetCatalog, is_train, 
+                             cfg.DATASETS.DATASET_CLASS, cfg.DATASETS.DATASET_ARGS)
 
     if is_train:
         # save category_id to label name mapping
@@ -163,7 +170,8 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, is_
     for dataset in datasets:
         sampler = make_data_sampler(dataset, shuffle, is_distributed)
         batch_sampler = make_batch_data_sampler(
-            dataset, sampler, aspect_grouping, images_per_gpu, num_iters, start_iter
+            dataset, sampler, aspect_grouping, images_per_gpu, num_iters, start_iter,
+            cfg.DATALOADER.DROP_LAST
         )
         collator = BBoxAugCollator() if not is_train and cfg.TEST.BBOX_AUG.ENABLED else \
             BatchCollator(cfg.DATALOADER.SIZE_DIVISIBILITY)
@@ -175,7 +183,7 @@ def make_data_loader(cfg, is_train=True, is_distributed=False, start_iter=0, is_
             collate_fn=collator,
         )
         data_loaders.append(data_loader)
-    if is_train or is_for_period:
+    if is_train:
         # during training, a single (possibly concatenated) data_loader is returned
         assert len(data_loaders) == 1
         return data_loaders[0]

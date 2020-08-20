@@ -19,6 +19,7 @@ class Checkpointer(object):
         save_dir="",
         save_to_disk=None,
         logger=None,
+        replace_substr_dict={},
     ):
         self.model = model
         self.optimizer = optimizer
@@ -28,6 +29,7 @@ class Checkpointer(object):
         if logger is None:
             logger = logging.getLogger(__name__)
         self.logger = logger
+        self.replace_substr_dict = replace_substr_dict
 
     def save(self, name, **kwargs):
         if not self.save_dir:
@@ -49,7 +51,7 @@ class Checkpointer(object):
         torch.save(data, save_file)
         self.tag_last_checkpoint(save_file)
 
-    def load(self, f=None, use_latest=True):
+    def load(self, f=None, use_latest=True, load_trainer_state=True):
         if self.has_checkpoint() and use_latest:
             # override argument with existing checkpoint
             f = self.get_checkpoint_file()
@@ -60,10 +62,10 @@ class Checkpointer(object):
         self.logger.info("Loading checkpoint from {}".format(f))
         checkpoint = self._load_file(f)
         self._load_model(checkpoint)
-        if "optimizer" in checkpoint and self.optimizer:
+        if load_trainer_state and "optimizer" in checkpoint and self.optimizer:
             self.logger.info("Loading optimizer from {}".format(f))
             self.optimizer.load_state_dict(checkpoint.pop("optimizer"))
-        if "scheduler" in checkpoint and self.scheduler:
+        if load_trainer_state and "scheduler" in checkpoint and self.scheduler:
             self.logger.info("Loading scheduler from {}".format(f))
             self.scheduler.load_state_dict(checkpoint.pop("scheduler"))
 
@@ -95,7 +97,7 @@ class Checkpointer(object):
         return torch.load(f, map_location=torch.device("cpu"))
 
     def _load_model(self, checkpoint):
-        load_state_dict(self.model, checkpoint.pop("model"))
+        load_state_dict(self.model, checkpoint.pop("model"), self.replace_substr_dict)
 
 
 class DetectronCheckpointer(Checkpointer):
@@ -108,9 +110,17 @@ class DetectronCheckpointer(Checkpointer):
         save_dir="",
         save_to_disk=None,
         logger=None,
+        replace_substr_dict={},
+        backbone_prefix="",
+        load_emb_pred_from=None,
     ):
+        if len(backbone_prefix) > 0:
+            replace_substr_dict[backbone_prefix] = ''
+        if load_emb_pred_from is not None:
+            replace_substr_dict[f'mmss_heads.{load_emb_pred_from}.v2l_projection'
+                               ] = 'roi_heads.box.predictor.emb_pred'
         super(DetectronCheckpointer, self).__init__(
-            model, optimizer, scheduler, save_dir, save_to_disk, logger
+            model, optimizer, scheduler, save_dir, save_to_disk, logger, replace_substr_dict
         )
         self.cfg = cfg.clone()
 

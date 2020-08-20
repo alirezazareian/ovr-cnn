@@ -33,7 +33,9 @@ _C.MODEL.CLS_AGNOSTIC_BBOX_REG = False
 # the path in paths_catalog. Else, it will use it as the specified absolute
 # path
 _C.MODEL.WEIGHT = ""
-
+_C.MODEL.BACKBONE_PREFIX = ""
+_C.MODEL.LOAD_TRAINER_STATE = True
+_C.MODEL.LOAD_EMB_PRED_FROM_MMSS_HEAD = False
 
 # -----------------------------------------------------------------------------
 # INPUT
@@ -73,6 +75,12 @@ _C.DATASETS.TRAIN = ()
 # List of the dataset names for testing, as present in paths_catalog.py
 _C.DATASETS.TEST = ()
 
+_C.DATASETS.DATASET_CLASS = ""
+_C.DATASETS.DATASET_ARGS = CN()
+_C.DATASETS.DATASET_ARGS.LOAD_EMBEDDINGS = False
+_C.DATASETS.DATASET_ARGS.EMB_KEY = "GloVE"
+_C.DATASETS.DATASET_ARGS.EMB_DIM = 300
+
 # -----------------------------------------------------------------------------
 # DataLoader
 # -----------------------------------------------------------------------------
@@ -86,6 +94,9 @@ _C.DATALOADER.SIZE_DIVISIBILITY = 0
 # is compatible. This groups portrait images together, and landscape images
 # are not batched with portrait images.
 _C.DATALOADER.ASPECT_RATIO_GROUPING = True
+# Drop the last batch if its size will be less than the batch size.
+# This is helpful in MMSS training because cross-entropy across batch is used.
+_C.DATALOADER.DROP_LAST = False
 
 
 # ---------------------------------------------------------------------------- #
@@ -101,6 +112,67 @@ _C.MODEL.BACKBONE.CONV_BODY = "R-50-C4"
 
 # Add StopGrad at a specified stage so the bottom layers are frozen
 _C.MODEL.BACKBONE.FREEZE_CONV_BODY_AT = 2
+
+_C.MODEL.LANGUAGE_BACKBONE = CN()
+_C.MODEL.LANGUAGE_BACKBONE.TYPE = "BERT-Base"
+_C.MODEL.LANGUAGE_BACKBONE.FREEZE = True
+_C.MODEL.LANGUAGE_BACKBONE.EMBEDDING_PATH = ''
+_C.MODEL.LANGUAGE_BACKBONE.ADD_POSITION_EMBEDDING = False
+
+# Config for Multimedia Self-Supervised training heads
+_C.MODEL.MMSS_HEAD = CN()
+_C.MODEL.MMSS_HEAD.TYPES = ("GroundingHead",)
+_C.MODEL.MMSS_HEAD.DEFAULT_HEAD = "GroundingHead"
+_C.MODEL.MMSS_HEAD.TIE_VL_PROJECTION_WEIGHTS = False
+# How many visual regions to keep at most? -1 or 0 means keep all.
+_C.MODEL.MMSS_HEAD.SPATIAL_DROPOUT = -1
+# Config for Grounding Head (default)
+_C.MODEL.MMSS_HEAD.GROUNDING = CN()
+_C.MODEL.MMSS_HEAD.GROUNDING.LOCAL_METRIC = "dot"
+_C.MODEL.MMSS_HEAD.GROUNDING.GLOBAL_METRIC = "aligned_local"
+_C.MODEL.MMSS_HEAD.GROUNDING.ALIGNMENT = "hardmax"
+_C.MODEL.MMSS_HEAD.GROUNDING.ALIGNMENT_TEMPERATURE = 1.0
+_C.MODEL.MMSS_HEAD.GROUNDING.LOSS = "matching"
+_C.MODEL.MMSS_HEAD.GROUNDING.NEGATIVE_MINING = "random"
+_C.MODEL.MMSS_HEAD.GROUNDING.TRIPLET_MARGIN = 1.0
+_C.MODEL.MMSS_HEAD.GROUNDING.ALIGN_WORDS_TO_REGIONS = True
+_C.MODEL.MMSS_HEAD.GROUNDING.ALIGN_REGIONS_TO_WORDS = True
+# Config for Transformer Head
+_C.MODEL.MMSS_HEAD.TRANSFORMER = CN()
+_C.MODEL.MMSS_HEAD.TRANSFORMER.MASKED_LANGUAGE_MODELING = False
+# Probability of selecting each token for masking
+_C.MODEL.MMSS_HEAD.TRANSFORMER.MASKED_LANGUAGE_MODELING_PROB = 0.15
+# Probability of replacing a selected token with mask
+_C.MODEL.MMSS_HEAD.TRANSFORMER.MASKED_LANGUAGE_MODELING_PROB_MASK = 0.9
+# Probability of replacing a selected token with another random token
+# Note the sum of this and the previous one should be less than or equal to one.
+# If the sum is less than one, the rest of the selected tokens will remain intact.
+_C.MODEL.MMSS_HEAD.TRANSFORMER.MASKED_LANGUAGE_MODELING_PROB_NOISE = 0.0
+# If true, it will do MLM even during validation, so we can compute MLM accuracy. 
+# But this affects other tasks like image-caption matching, so we have the option to disable it.
+_C.MODEL.MMSS_HEAD.TRANSFORMER.MASKED_LANGUAGE_MODELING_VALIDATION = True
+_C.MODEL.MMSS_HEAD.TRANSFORMER.MASKED_VISUAL_MODELING = False
+# Can be either contrastive_cross_entropy or reconstruction_error
+_C.MODEL.MMSS_HEAD.TRANSFORMER.MVM_LOSS = ''
+# Used when MVM_LOSS is contrastive_cross_entropy
+_C.MODEL.MMSS_HEAD.TRANSFORMER.MVM_LOSS_NUM_NEGATIVE = 128
+# Can be either binary or cross_entropy
+_C.MODEL.MMSS_HEAD.TRANSFORMER.MMM_LOSS = ''
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG = CN()
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.vocab_size = 30522
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.hidden_size = 768
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.num_hidden_layers = 12
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.num_attention_heads = 12
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.intermediate_size = 3072
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.hidden_act = "gelu"
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.hidden_dropout_prob = 0.1
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.attention_probs_dropout_prob = 0.1
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.max_position_embeddings = 512
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.type_vocab_size = 2
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.initializer_range = 0.02
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.layer_norm_eps = 1e-12
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.pad_token_id = 0
+_C.MODEL.MMSS_HEAD.TRANSFORMER.BERT_CONFIG.gradient_checkpointing = False
 
 
 # ---------------------------------------------------------------------------- #
@@ -223,6 +295,12 @@ _C.MODEL.ROI_BOX_HEAD.USE_GN = False
 _C.MODEL.ROI_BOX_HEAD.DILATION = 1
 _C.MODEL.ROI_BOX_HEAD.CONV_HEAD_DIM = 256
 _C.MODEL.ROI_BOX_HEAD.NUM_STACKED_CONVS = 4
+
+_C.MODEL.ROI_BOX_HEAD.EMB_DIM = 300
+_C.MODEL.ROI_BOX_HEAD.EMBEDDING_BASED = False
+_C.MODEL.ROI_BOX_HEAD.LOSS_WEIGHT_BACKGROUND = 1.0
+_C.MODEL.ROI_BOX_HEAD.FREEZE_EMB_PRED = False
+_C.MODEL.ROI_BOX_HEAD.FREEZE_FEATURE_EXTRACTOR = False
 
 
 _C.MODEL.ROI_MASK_HEAD = CN()
@@ -408,13 +486,24 @@ _C.SOLVER.WARMUP_FACTOR = 1.0 / 3
 _C.SOLVER.WARMUP_ITERS = 500
 _C.SOLVER.WARMUP_METHOD = "linear"
 
-_C.SOLVER.CHECKPOINT_PERIOD = 2500
-_C.SOLVER.TEST_PERIOD = 0
+_C.SOLVER.CHECKPOINT_PERIOD = 10000
+_C.SOLVER.TEST_PERIOD = 10000
+_C.SOLVER.LOG_PERIOD = 20
 
 # Number of images per batch
 # This is global, so if we have 8 GPUs and IMS_PER_BATCH = 16, each GPU will
 # see 2 images per batch
 _C.SOLVER.IMS_PER_BATCH = 16
+
+_C.SOLVER.CLIP_GRAD_NORM_AT = -1.0
+_C.SOLVER.GRADIENT_ACCUMULATION_STEPS = 1
+# Originally, maskrcnn is implemented in a way that it only computes loss if model.training
+# is True. So when computing validation loss, we should keep the model in training mode.
+# But that is not ideal, because in training mode, dropout is applied and batch norm is
+# updated. Things get worse in my self-supervised training framework, as masked language
+# modeling and spatial dropout are also applied in training mode. So I added this option 
+# to set this False for self-supervised training.
+_C.SOLVER.USE_TRAIN_MODE_FOR_VALIDATION_LOSS = True
 
 # ---------------------------------------------------------------------------- #
 # Specific test options
@@ -450,6 +539,7 @@ _C.TEST.BBOX_AUG.MAX_SIZE = 4000
 # Horizontal flip at each scale
 _C.TEST.BBOX_AUG.SCALE_H_FLIP = False
 
+_C.TEST.DO_EVAL = True
 
 # ---------------------------------------------------------------------------- #
 # Misc options

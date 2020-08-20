@@ -1,0 +1,33 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  WEIGHT: "/home/user/runs/vltrain/087/model_0040000.pth"
+  BACKBONE_PREFIX: "backbone.body."
+  LOAD_TRAINER_STATE: False
+  CLS_AGNOSTIC_BBOX_REG: True
+  RPN:
+    PRE_NMS_TOP_N_TEST: 6000
+    POST_NMS_TOP_N_TEST: 1000
+  ROI_BOX_HEAD:
+    NUM_CLASSES: 0
+    EMB_DIM: 300
+    EMBEDDING_BASED: True
+    IGNORE_BACKGROUND: True
+  BACKBONE:
+    FREEZE_CONV_BODY_AT: 3
+DATASETS:
+  TRAIN: ("coco_zeroshot_train",)
+  TEST: ("coco_not_zeroshot_val", "coco_zeroshot_val", "coco_generalized_zeroshot_val")
+  DATASET_CLASS: "COCODataset"
+  DATASET_ARGS: 
+    LOAD_EMBEDDINGS: True
+SOLVER:
+  BASE_LR: 0.01
+  WEIGHT_DECAY: 0.0001
+  STEPS: (120000, 160000)
+  MAX_ITER: 180000
+  IMS_PER_BATCH: 8
+  CHECKPOINT_PERIOD: 10000
+  TEST_PERIOD: 10000
+  LOG_PERIOD: 100
+TEST:
+  IMS_PER_BATCH: 8

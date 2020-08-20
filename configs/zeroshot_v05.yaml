@@ -1,0 +1,35 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  WEIGHT: "/home/user/runs/vltrain/089/model_0040000.pth"
+  BACKBONE_PREFIX: "backbone.body."
+  LOAD_EMB_PRED_FROM_MMSS_HEAD: True
+  LOAD_TRAINER_STATE: False
+  CLS_AGNOSTIC_BBOX_REG: True
+  ROI_BOX_HEAD:
+    # Note these are the number of classes for training only
+    NUM_CLASSES: 49
+    EMB_DIM: 300
+    EMBEDDING_BASED: True
+    LOSS_WEIGHT_BACKGROUND: 0.2
+    FREEZE_EMB_PRED: True
+  ROI_HEADS:
+    POSITIVE_FRACTION: 1.0
+  BACKBONE:
+    FREEZE_CONV_BODY_AT: 2
+DATASETS:
+  TRAIN: ("coco_zeroshot_train",)
+  TEST: ("coco_not_zeroshot_val", "coco_zeroshot_val", "coco_generalized_zeroshot_val")
+  DATASET_CLASS: "COCODataset"
+  DATASET_ARGS: 
+    LOAD_EMBEDDINGS: True
+SOLVER:
+  BASE_LR: 0.01
+  WEIGHT_DECAY: 0.0001
+  STEPS: (60000, 120000)
+  MAX_ITER: 150000
+  IMS_PER_BATCH: 8
+  CHECKPOINT_PERIOD: 10000
+  TEST_PERIOD: 10000
+  LOG_PERIOD: 100
+TEST:
+  IMS_PER_BATCH: 8

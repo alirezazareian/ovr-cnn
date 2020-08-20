@@ -1,46 +1,16 @@
 ## Webcam and Jupyter notebook demo
 
-This folder contains a simple webcam demo that illustrates how you can use `maskrcnn_benchmark` for inference.
+This folder contains several Jupyter notebooks that create offline video demos for our open-vocabulary object detector. It also contains the original webcam demo of the `maskrcnn_benchmark` repository, which we haven't tested on our models yet. Note the notebooks should be run with a kernel that has this repository and its requirements installed (from [here](../INSTALL.md)). 
+
+Each notebook loads a list of video files and feeds into two models (ours vs. baseline), visualizes the results of both and shows side-by-side in an output video. Here is a list of the files and what each does:
+
+* [`demo-01.ipynb`](demo-01.ipynb): our model trained on 48 COCO classes, tested on 65 classes (48 seen + 17 unseen), compared to a regular Faster R-CNN trained and tested on the 48 seen classes.
+* [`demo-02.ipynb`](demo-02.ipynb): our model trained on 48 COCO classes, tested on all 80 COCO classes, compared to a regular Faster R-CNN trained and tested on the 48 seen classes.
+* [`demo-03.ipynb`](demo-03.ipynb): our model trained on 48 COCO classes, tested on 1200 frequent words from COCO captions, compared to a regular Faster R-CNN trained and tested on the 48 seen classes.
+* [`demo-04.ipynb`](demo-04.ipynb): our model trained on 48 COCO classes, tested on 600 Open Images classes, compared to a regular Faster R-CNN trained and tested on the 48 seen classes.
+* [`demo-05.ipynb`](demo-05.ipynb): our model trained on all 80 COCO classes, tested on 1200 frequent words from COCO captions, compared to a regular Faster R-CNN trained and tested on 80 COCO classes.
+* [`demo-06.ipynb`](demo-06.ipynb): our model trained on all 80 COCO classes, tested on 600 Open Images classes, compared to a regular Faster R-CNN trained and tested on 80 COCO classes.
+* [`demo-06.ipynb`](demo-06.ipynb): same as `demo-01.ipynb` except it generates GIF files instead of MP4.
 
 
-### With your preferred environment
 
-You can start it by running it from this folder, using one of the following commands:
-```bash
-# by default, it runs on the GPU
-# for best results, use min-image-size 800
-python webcam.py --min-image-size 800
-# can also run it on the CPU
-python webcam.py --min-image-size 300 MODEL.DEVICE cpu
-# or change the model that you want to use
-python webcam.py --config-file ../configs/caffe2/e2e_mask_rcnn_R_101_FPN_1x_caffe2.yaml --min-image-size 300 MODEL.DEVICE cpu
-# in order to see the probability heatmaps, pass --show-mask-heatmaps
-python webcam.py --min-image-size 300 --show-mask-heatmaps MODEL.DEVICE cpu
-```
-
-### With Docker
-
-Build the image with the tag `maskrcnn-benchmark` (check [INSTALL.md](../INSTALL.md) for instructions)
-
-Adjust permissions of the X server host (be careful with this step, refer to 
-[here](http://wiki.ros.org/docker/Tutorials/GUI) for alternatives)
-
-```bash
-xhost +
-``` 
-
-Then run a container with the demo:
- 
-```
-docker run --rm -it \
-    -e DISPLAY=${DISPLAY} \
-    --privileged \
-    -v /tmp/.X11-unix:/tmp/.X11-unix \
-    --device=/dev/video0:/dev/video0 \
-    --ipc=host maskrcnn-benchmark \
-    python demo/webcam.py --min-image-size 300 \
-    --config-file configs/caffe2/e2e_mask_rcnn_R_50_FPN_1x_caffe2.yaml
-```
-
-**DISCLAIMER:** *This was tested for an Ubuntu 16.04 machine, 
-the volume mapping may vary depending on your platform*

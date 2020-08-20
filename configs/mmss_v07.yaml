@@ -1,0 +1,84 @@
+MODEL:
+  # This is what indicates we want image-caption training not object detection
+  META_ARCHITECTURE: "MMSS-GCNN"
+  # URL to the initial weights, trained for imagenet classification
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+  RESNETS:
+    BACKBONE_OUT_CHANNELS: 2048
+  BACKBONE:
+    # a full resnet, including stem and 4 blocks
+    CONV_BODY: "R-50-C5"
+    # don't freeze any layer, train everything
+    FREEZE_CONV_BODY_AT: 0
+  LANGUAGE_BACKBONE:
+    # make a BERT model to process captions
+    TYPE: "BERT-Base"
+    # and freeze it (loaded from original pretrained bert of huggingface)
+    FREEZE: True
+  MMSS_HEAD:
+    # We want both a grounding head and a transformer head on top of image and caption,
+    # each of which defines its own objective functions.
+    TYPES: ("GroundingHead", "TransformerHead")
+    DEFAULT_HEAD: "GroundingHead"
+    # Share the weights of the vision to language projection between the two heads. 
+    # Use the one on the grounding head because that is the default (see above)
+    TIE_VL_PROJECTION_WEIGHTS: True
+    # Randomly keep up to 100 visual regions from each image. This is to save memory.
+    SPATIAL_DROPOUT: 100
+    GROUNDING:
+      # Use dot product for grounding. This could be cosine or euclidean too.
+      LOCAL_METRIC: "dot"
+      # After aligning words to regions, sum the local distances to compute global distance.
+      GLOBAL_METRIC: "aligned_local"
+      # Use softmax to softly align each word to regions, and vice versa. 
+      # This could be for instance hardmax, which aligns to the most similar
+      ALIGNMENT: "softmax"
+      # Typical good values are 100.0 for euclidean, 10.0 for dot, 0.01 for cosine
+      ALIGNMENT_TEMPERATURE: 10.0
+      # This loss is to choose the right caption out of all captions in the batch, 
+      # And similarly choose the right image. Could be triplet loss instead.
+      LOSS: "cross_entropy"
+      # Whether to find a region for each word
+      ALIGN_WORDS_TO_REGIONS: True
+      # Whether to find a word for a region
+      # At least one of these two should be True
+      ALIGN_REGIONS_TO_WORDS: True
+    TRANSFORMER:
+      # Whether to perform masked language modeling (randomly mask words from captions
+      # and have the model reconstruct them)
+      MASKED_LANGUAGE_MODELING: True
+      # Whether to do that during validation as well. That is not good if you want to
+      # measure image-caption matching scores.
+      MASKED_LANGUAGE_MODELING_VALIDATION: False
+      # For now this is not implemented, so keep it False and ''
+      MASKED_VISUAL_MODELING: False
+      MVM_LOSS: ''
+      # For Multimedia Matching loss, cross-entropy works just like in the grounding head
+      MMM_LOSS: 'cross_entropy'
+      # Typical BERT configs as in Huggingface
+      BERT_CONFIG:
+        num_hidden_layers: 6
+        num_attention_heads: 8
+        intermediate_size: 768
+DATASETS:
+  TRAIN: ("coco_captions_train",)
+  TEST: ("coco_captions_val",)
+  DATASET_CLASS: "COCOCaptionsDataset"
+SOLVER:
+  BASE_LR: 0.01
+  WEIGHT_DECAY: 0.0001
+  STEPS: (20000, 35000)
+  MAX_ITER: 40000
+  IMS_PER_BATCH: 64
+  TEST_PERIOD: 1000
+  CHECKPOINT_PERIOD: 1000
+  LOG_PERIOD: 100
+  CLIP_GRAD_NORM_AT: 5.0
+  # A value of more than one means accumulate gradients for several batches before updating
+  GRADIENT_ACCUMULATION_STEPS: 1
+  # If true, it calls model.train() before computing validation loss. Needed for some models.
+  USE_TRAIN_MODE_FOR_VALIDATION_LOSS: False
+TEST:
+  DO_EVAL: False
+  IMS_PER_BATCH: 64
+  

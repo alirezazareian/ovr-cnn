@@ -1,0 +1,40 @@
+MODEL:
+  META_ARCHITECTURE: "MMSS-GCNN"
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+  RESNETS:
+    BACKBONE_OUT_CHANNELS: 2048
+  BACKBONE:
+    CONV_BODY: "R-50-C5"
+    FREEZE_CONV_BODY_AT: 0
+  LANGUAGE_BACKBONE:
+    TYPE: "BERT-Base"
+    FREEZE: True
+  MMSS_HEAD:
+    TYPES: ("TransformerHead",)
+    TRANSFORMER:
+      MASKED_LANGUAGE_MODELING: True
+      MASKED_VISUAL_MODELING: False
+      MVM_LOSS: ''
+      MMM_LOSS: 'cross_entropy'
+      BERT_CONFIG:
+        num_hidden_layers: 6
+        num_attention_heads: 8
+        intermediate_size: 768
+DATASETS:
+  TRAIN: ("coco_captions_train",)
+  TEST: ("coco_captions_val",)
+  DATASET_CLASS: "COCOCaptionsDataset"
+SOLVER:
+  BASE_LR: 0.01
+  WEIGHT_DECAY: 0.0001
+  STEPS: (20000, 35000)
+  MAX_ITER: 40000
+  IMS_PER_BATCH: 16
+  TEST_PERIOD: 1000
+  CHECKPOINT_PERIOD: 1000
+  LOG_PERIOD: 100
+  CLIP_GRAD_NORM_AT: 5.0
+TEST:
+  DO_EVAL: False
+  IMS_PER_BATCH: 16
+  

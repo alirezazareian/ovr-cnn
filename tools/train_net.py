@@ -9,8 +9,15 @@ from maskrcnn_benchmark.utils.env import setup_environment  # noqa F401 isort:sk
 
 import argparse
 import os
+import time
+from datetime import datetime
 
 import torch
+# Native tensorboard only works for pytorch 1.1 and later. 
+# For older pytorch use tensorboardX.
+# from torch.utils.tensorboard import SummaryWriter
+from tensorboardX import SummaryWriter
+
 from maskrcnn_benchmark.config import cfg
 from maskrcnn_benchmark.data import make_data_loader
 from maskrcnn_benchmark.solver import make_lr_scheduler
@@ -33,7 +40,7 @@ except ImportError:
     raise ImportError('Use APEX for multi-precision via apex.amp')
 
 
-def train(cfg, local_rank, distributed):
+def train(cfg, local_rank, distributed, tb_logger):
     model = build_detection_model(cfg)
     device = torch.device(cfg.MODEL.DEVICE)
     model.to(device)
@@ -60,10 +67,14 @@ def train(cfg, local_rank, distributed):
 
     save_to_disk = get_rank() == 0
     checkpointer = DetectronCheckpointer(
-        cfg, model, optimizer, scheduler, output_dir, save_to_disk
+        cfg, model, optimizer, scheduler, output_dir, save_to_disk,
+        backbone_prefix=cfg.MODEL.BACKBONE_PREFIX,
+        load_emb_pred_from=(cfg.MODEL.MMSS_HEAD.DEFAULT_HEAD if
+                            cfg.MODEL.LOAD_EMB_PRED_FROM_MMSS_HEAD else None)
     )
-    extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT)
-    arguments.update(extra_checkpoint_data)
+    extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, load_trainer_state=cfg.MODEL.LOAD_TRAINER_STATE)
+    if cfg.MODEL.LOAD_TRAINER_STATE:
+        arguments.update(extra_checkpoint_data)
 
     data_loader = make_data_loader(
         cfg,
@@ -74,7 +85,7 @@ def train(cfg, local_rank, distributed):
 
     test_period = cfg.SOLVER.TEST_PERIOD
     if test_period > 0:
-        data_loader_val = make_data_loader(cfg, is_train=False, is_distributed=distributed, is_for_period=True)
+        data_loader_val = make_data_loader(cfg, is_train=False, is_distributed=distributed)[0]
     else:
         data_loader_val = None
 
@@ -92,6 +103,7 @@ def train(cfg, local_rank, distributed):
         checkpoint_period,
         test_period,
         arguments,
+        tb_logger,
     )
 
     return model
@@ -191,7 +203,14 @@ def main():
     # save overloaded model config in the output directory
     save_config(cfg, output_config_path)
 
-    model = train(cfg, args.local_rank, args.distributed)
+    if get_rank() == 0:
+        timestamp = datetime.fromtimestamp(time.time()).strftime('%Y%m%d-%H:%M')
+        tb_summary_path = os.path.join(cfg.OUTPUT_DIR, 'tb')
+        tb_logger = SummaryWriter('{}-{}'.format(tb_summary_path, timestamp))
+    else:
+        tb_logger = None
+
+    model = train(cfg, args.local_rank, args.distributed, tb_logger)
 
     if not args.skip_test:
         run_test(cfg, model, args.distributed)

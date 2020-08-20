@@ -7,7 +7,7 @@ import torch
 from maskrcnn_benchmark.utils.imports import import_file
 
 
-def align_and_update_state_dicts(model_state_dict, loaded_state_dict):
+def align_and_update_state_dicts(model_state_dict, loaded_state_dict, replace_substr_dict={}):
     """
     Strategy: suppose that the models that we will create will have prefixes appended
     to each of its keys, for example due to an extra level of nesting that the original
@@ -24,10 +24,19 @@ def align_and_update_state_dicts(model_state_dict, loaded_state_dict):
     """
     current_keys = sorted(list(model_state_dict.keys()))
     loaded_keys = sorted(list(loaded_state_dict.keys()))
+
+    renamed_loaded_keys = []
+    for item in loaded_keys:
+        renamed = str(item)
+        for k, v in replace_substr_dict.items():
+            if k in item:
+                renamed = renamed.replace(k, v)
+        renamed_loaded_keys.append(renamed)
+
     # get a matrix of string matches, where each (i, j) entry correspond to the size of the
     # loaded_key string, if it matches
     match_matrix = [
-        len(j) if i.endswith(j) else 0 for i in current_keys for j in loaded_keys
+        len(j) if i.endswith(j) else 0 for i in current_keys for j in renamed_loaded_keys
     ]
     match_matrix = torch.as_tensor(match_matrix).view(
         len(current_keys), len(loaded_keys)
@@ -68,13 +77,13 @@ def strip_prefix_if_present(state_dict, prefix):
     return stripped_state_dict
 
 
-def load_state_dict(model, loaded_state_dict):
+def load_state_dict(model, loaded_state_dict, replace_substr_dict={}):
     model_state_dict = model.state_dict()
     # if the state_dict comes from a model that was wrapped in a
     # DataParallel or DistributedDataParallel during serialization,
     # remove the "module" prefix before performing the matching
     loaded_state_dict = strip_prefix_if_present(loaded_state_dict, prefix="module.")
-    align_and_update_state_dicts(model_state_dict, loaded_state_dict)
+    align_and_update_state_dicts(model_state_dict, loaded_state_dict, replace_substr_dict)
 
     # use strict loading
     model.load_state_dict(model_state_dict)

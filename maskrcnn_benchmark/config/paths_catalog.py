@@ -7,13 +7,52 @@ from copy import deepcopy
 class DatasetCatalog(object):
     DATA_DIR = "datasets"
     DATASETS = {
+        "conceptual_captions_train": {
+            "img_dir": "concap/images",
+            "ann_file": "concap/train.json"
+        },
+        "conceptual_captions_val": {
+            "img_dir": "concap/images",
+            "ann_file": "concap/validation.json"
+        },
+
+        "coco_captions_train": {
+            "img_dir": "coco/train2017",
+            "ann_file": "coco/annotations/captions_train2017.json"
+        },
+        "coco_captions_val": {
+            "img_dir": "coco/val2017",
+            "ann_file": "coco/annotations/captions_val2017.json"
+        },
+
+        "coco_zeroshot_train": {
+            "img_dir": "coco/train2017",
+            "ann_file": "coco/zero-shot/instances_train2017_seen_2.json"
+        },
+        "coco_zeroshot_val": {
+            "img_dir": "coco/val2017",
+            "ann_file": "coco/zero-shot/instances_val2017_unseen_2.json"
+        },
+        "coco_generalized_zeroshot_val": {
+            "img_dir": "coco/val2017",
+            "ann_file": "coco/zero-shot/instances_val2017_all_2.json"
+        },
+        "coco_not_zeroshot_val": {
+            "img_dir": "coco/val2017",
+            "ann_file": "coco/zero-shot/instances_val2017_seen_2.json"
+        },
+        "coco_zeroshot_plus_unseen_train": {
+            "img_dir": "coco/train2017",
+            "ann_file": "coco/zero-shot/instances_train2017_all_2.json"
+        },
+
         "coco_2017_train": {
             "img_dir": "coco/train2017",
-            "ann_file": "coco/annotations/instances_train2017.json"
+            "ann_file": "coco/zero-shot/instances_train2017_full.json"
         },
         "coco_2017_val": {
             "img_dir": "coco/val2017",
-            "ann_file": "coco/annotations/instances_val2017.json"
+            "ann_file": "coco/zero-shot/instances_val2017_full.json"
         },
         "coco_2014_train": {
             "img_dir": "coco/train2014",
@@ -159,7 +198,7 @@ class DatasetCatalog(object):
                 ann_file=os.path.join(data_dir, attrs["ann_file"]),
             )
             return dict(
-                factory="COCODataset",
+                factory="COCOCaptionsDataset" if "captions" in name else "COCODataset",
                 args=args,
             )
         elif "voc" in name:
@@ -179,6 +218,17 @@ class DatasetCatalog(object):
             attrs["img_dir"] = os.path.join(data_dir, attrs["img_dir"])
             attrs["ann_dir"] = os.path.join(data_dir, attrs["ann_dir"])
             return dict(factory="CityScapesDataset", args=attrs)
+        elif "conceptual" in name:
+            data_dir = DatasetCatalog.DATA_DIR
+            attrs = DatasetCatalog.DATASETS[name]
+            args = dict(
+                root=os.path.join(data_dir, attrs["img_dir"]),
+                ann_file=os.path.join(data_dir, attrs["ann_file"]),
+            )
+            return dict(
+                factory="ConCapDataset",
+                args=args,
+            )
         raise RuntimeError("Dataset not available: {}".format(name))
 
 

@@ -19,47 +19,47 @@ def do_coco_evaluation(
     expected_results,
     expected_results_sigma_tol,
 ):
-    logger = logging.getLogger("maskrcnn_benchmark.inference")
-
+    coco_results = None
     if box_only:
-        logger.info("Evaluating bbox proposals")
-        areas = {"all": "", "small": "s", "medium": "m", "large": "l"}
-        res = COCOResults("box_proposal")
-        for limit in [100, 1000]:
-            for area, suffix in areas.items():
-                stats = evaluate_box_proposals(
-                    predictions, dataset, area=area, limit=limit
-                )
-                key = "AR{}@{:d}".format(suffix, limit)
-                res.results["box_proposal"][key] = stats["ar"].item()
-        logger.info(res)
-        check_expected_results(res, expected_results, expected_results_sigma_tol)
-        if output_folder:
-            torch.save(res, os.path.join(output_folder, "box_proposals.pth"))
-        return
-    logger.info("Preparing results for COCO format")
-    coco_results = {}
-    if "bbox" in iou_types:
-        logger.info("Preparing bbox results")
-        coco_results["bbox"] = prepare_for_coco_detection(predictions, dataset)
-    if "segm" in iou_types:
-        logger.info("Preparing segm results")
-        coco_results["segm"] = prepare_for_coco_segmentation(predictions, dataset)
-    if 'keypoints' in iou_types:
-        logger.info('Preparing keypoints results')
-        coco_results['keypoints'] = prepare_for_coco_keypoint(predictions, dataset)
+        results = COCOResults("box_proposal")
+    else:
+        results = COCOResults("box_proposal", *iou_types)
 
-    results = COCOResults(*iou_types)
-    logger.info("Evaluating predictions")
-    for iou_type in iou_types:
-        with tempfile.NamedTemporaryFile() as f:
-            file_path = f.name
-            if output_folder:
-                file_path = os.path.join(output_folder, iou_type + ".json")
-            res = evaluate_predictions_on_coco(
-                dataset.coco, coco_results[iou_type], file_path, iou_type
+    logger = logging.getLogger("maskrcnn_benchmark.inference")
+    logger.info("Evaluating bbox proposals")
+    areas = {"all": "", "small": "s", "medium": "m", "large": "l"}
+    for limit in [100, 1000]:
+        for area, suffix in areas.items():
+            stats = evaluate_box_proposals(
+                predictions, dataset, area=area, limit=limit
             )
-            results.update(res)
+            key = "AR{}@{:d}".format(suffix, limit)
+            results.results["box_proposal"][key] = stats["ar"].item()
+
+    if not box_only:
+        logger.info("Preparing results for COCO format")
+        coco_results = {}
+        if "bbox" in iou_types:
+            logger.info("Preparing bbox results")
+            coco_results["bbox"] = prepare_for_coco_detection(predictions, dataset)
+        if "segm" in iou_types:
+            logger.info("Preparing segm results")
+            coco_results["segm"] = prepare_for_coco_segmentation(predictions, dataset)
+        if 'keypoints' in iou_types:
+            logger.info('Preparing keypoints results')
+            coco_results['keypoints'] = prepare_for_coco_keypoint(predictions, dataset)
+
+        logger.info("Evaluating predictions")
+        for iou_type in iou_types:
+            with tempfile.NamedTemporaryFile() as f:
+                file_path = f.name
+                if output_folder:
+                    file_path = os.path.join(output_folder, iou_type + ".json")
+                res = evaluate_predictions_on_coco(
+                    dataset.coco, coco_results[iou_type], file_path, iou_type
+                )
+                results.update(res)
+
     logger.info(results)
     check_expected_results(results, expected_results, expected_results_sigma_tol)
     if output_folder:
@@ -85,7 +85,10 @@ def prepare_for_coco_detection(predictions, dataset):
         scores = prediction.get_field("scores").tolist()
         labels = prediction.get_field("labels").tolist()
 
-        mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]
+        if hasattr(dataset, 'contiguous_category_id_to_json_id'):
+            mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]
+        else:
+            mapped_labels = labels
 
         coco_results.extend(
             [
@@ -139,7 +142,10 @@ def prepare_for_coco_segmentation(predictions, dataset):
         for rle in rles:
             rle["counts"] = rle["counts"].decode("utf-8")
 
-        mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]
+        if hasattr(dataset, 'contiguous_category_id_to_json_id'):
+            mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]
+        else:
+            mapped_labels = labels
 
         coco_results.extend(
             [
@@ -176,7 +182,10 @@ def prepare_for_coco_keypoint(predictions, dataset):
         keypoints = keypoints.resize((image_width, image_height))
         keypoints = keypoints.keypoints.view(keypoints.keypoints.shape[0], -1).tolist()
 
-        mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]
+        if hasattr(dataset, 'contiguous_category_id_to_json_id'):
+            mapped_labels = [dataset.contiguous_category_id_to_json_id[i] for i in labels]
+        else:
+            mapped_labels = labels
 
         coco_results.extend([{
             'image_id': original_id,

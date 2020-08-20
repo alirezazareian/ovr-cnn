@@ -1,14 +1,18 @@
 # Copyright (c) Facebook, Inc. and its affiliates. All Rights Reserved.
 import torch
+import logging
 
 from .lr_scheduler import WarmupMultiStepLR
 
 
 def make_optimizer(cfg, model):
     params = []
+    logger = logging.getLogger("maskrcnn_benchmark.make_optimizer")
+    logger.info("The following parameters will be trained: ")
     for key, value in model.named_parameters():
         if not value.requires_grad:
             continue
+        logger.info(key)
         lr = cfg.SOLVER.BASE_LR
         weight_decay = cfg.SOLVER.WEIGHT_DECAY
         if "bias" in key:

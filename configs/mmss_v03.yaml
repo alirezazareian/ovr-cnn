@@ -1,0 +1,55 @@
+MODEL:
+  META_ARCHITECTURE: "MMSS-GCNN"
+  WEIGHT: "catalog://ImageNetPretrained/MSRA/R-50"
+  RESNETS:
+    BACKBONE_OUT_CHANNELS: 2048
+  BACKBONE:
+    CONV_BODY: "R-50-C5"
+    FREEZE_CONV_BODY_AT: 0
+  LANGUAGE_BACKBONE:
+    TYPE: "BERT-Base"
+    FREEZE: False
+  MMSS_HEAD:
+    TYPES: ("GroundingHead", "TransformerHead")
+    SPATIAL_DROPOUT: 100
+    GROUNDING:
+      LOCAL_METRIC: "dot"
+      GLOBAL_METRIC: "aligned_local"
+      ALIGNMENT: "softmax"
+      # 100.0 for euclidean, 10.0 for dot, 0.01 for cosine
+      ALIGNMENT_TEMPERATURE: 10.0
+      LOSS: "cross_entropy"
+      # NEGATIVE_MINING: 'random'
+      # TRIPLET_MARGIN: 1.0
+      ALIGN_WORDS_TO_REGIONS: True
+      ALIGN_REGIONS_TO_WORDS: True
+    TRANSFORMER:
+      MASKED_LANGUAGE_MODELING: True
+      MASKED_LANGUAGE_MODELING_VALIDATION: False
+      MASKED_VISUAL_MODELING: False
+      MVM_LOSS: ''
+      MMM_LOSS: 'cross_entropy'
+      BERT_CONFIG:
+        num_hidden_layers: 6
+        num_attention_heads: 8
+        intermediate_size: 768
+DATASETS:
+  TRAIN: ("coco_captions_train",)
+  TEST: ("coco_captions_val",)
+  DATASET_CLASS: "COCOCaptionsDataset"
+SOLVER:
+  BASE_LR: 0.01
+  WEIGHT_DECAY: 0.0001
+  STEPS: (20000, 35000)
+  MAX_ITER: 40000
+  IMS_PER_BATCH: 64
+  TEST_PERIOD: 1000
+  CHECKPOINT_PERIOD: 1000
+  LOG_PERIOD: 100
+  CLIP_GRAD_NORM_AT: 5.0
+  GRADIENT_ACCUMULATION_STEPS: 1
+  USE_TRAIN_MODE_FOR_VALIDATION_LOSS: False
+TEST:
+  DO_EVAL: False
+  IMS_PER_BATCH: 64
+  
