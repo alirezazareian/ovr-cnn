@@ -68,6 +68,7 @@ class COCODataset(torchvision.datasets.coco.CocoDetection):
         self.id_to_img_map = {k: v for k, v in enumerate(self.ids)}
         self._transforms = transforms
 
+        self.class_splits = {}
         if getattr(extra_args, 'LOAD_EMBEDDINGS', False):
             self.class_embeddings = {}
             with open(ann_file, 'r') as fin:
@@ -75,12 +76,17 @@ class COCODataset(torchvision.datasets.coco.CocoDetection):
                 for item in ann_data['categories']:
                     emb = item['embedding'][extra_args['EMB_KEY']]
                     self.class_embeddings[item['id']] = np.asarray(emb, dtype=np.float32)
+                    if 'split' in item:
+                        if item['split'] not in self.class_splits:
+                            self.class_splits[item['split']] = []
+                        self.class_splits[item['split']].append(item['id'])
             self.class_emb_mtx = np.zeros(
                 (len(self.contiguous_category_id_to_json_id) + 1, extra_args['EMB_DIM']),
                 dtype=np.float32)
             for i, cid in self.contiguous_category_id_to_json_id.items():
                 self.class_emb_mtx[i, :] = self.class_embeddings[cid]
-                    
+
+
     def __getitem__(self, idx):
         img, anno = super(COCODataset, self).__getitem__(idx)
 

@@ -4,6 +4,7 @@ import os
 import torch
 from collections import OrderedDict
 from tqdm import tqdm
+import numpy as np
 
 from maskrcnn_benchmark.modeling.roi_heads.mask_head.inference import Masker
 from maskrcnn_benchmark.structures.bounding_box import BoxList
@@ -21,9 +22,9 @@ def do_coco_evaluation(
 ):
     coco_results = None
     if box_only:
-        results = COCOResults("box_proposal")
+        results = COCOResults(dataset, "box_proposal")
     else:
-        results = COCOResults("box_proposal", *iou_types)
+        results = COCOResults(dataset, "box_proposal", *iou_types)
 
     logger = logging.getLogger("maskrcnn_benchmark.inference")
     logger.info("Evaluating bbox proposals")
@@ -349,7 +350,7 @@ class COCOResults(object):
         "keypoints": ["AP", "AP50", "AP75", "APm", "APl"],
     }
 
-    def __init__(self, *iou_types):
+    def __init__(self, dataset, *iou_types):
         allowed_types = ("box_proposal", "bbox", "segm", "keypoints")
         assert all(iou_type in allowed_types for iou_type in iou_types)
         results = OrderedDict()
@@ -358,6 +359,7 @@ class COCOResults(object):
                 [(metric, -1) for metric in COCOResults.METRICS[iou_type]]
             )
         self.results = results
+        self.dataset = dataset
 
     def update(self, coco_eval):
         if coco_eval is None:
@@ -371,6 +373,35 @@ class COCOResults(object):
         metrics = COCOResults.METRICS[iou_type]
         for idx, metric in enumerate(metrics):
             res[metric] = s[idx]
+
+        # Computing AP50 for each category and (seen/unseen) split
+        p = coco_eval.params
+        maxDets = p.maxDets[2]
+        areaRng = 'all'
+        iouThr = 0.5
+        aind = [i for i, aRng in enumerate(p.areaRngLbl) if aRng == areaRng]
+        mind = [i for i, mDet in enumerate(p.maxDets) if mDet == maxDets]
+        t = np.where(iouThr == p.iouThrs)[0]
+        s = coco_eval.eval['precision']
+        s = s[t,:,:,aind,mind]
+        for cid, cname in self.dataset.categories.items():
+            cinds = [i for i, c in enumerate(p.catIds) if c == cid]
+            s_split = s[:, :, cinds]
+            if len(s_split[s_split>-1])==0:
+                mean_s = -1
+            else:
+                mean_s = np.mean(s_split[s_split>-1])
+            res[f'AP50_class_{cname}'] = mean_s
+        for split, cid_list in self.dataset.class_splits.items():
+            cinds = []
+            for cid in cid_list:
+                cinds.extend([i for i, c in enumerate(p.catIds) if c == cid])
+            s_split = s[:, :, cinds]
+            if len(s_split[s_split>-1])==0:
+                mean_s = -1
+            else:
+                mean_s = np.mean(s_split[s_split>-1])
+            res[f'AP50_split_{split}'] = mean_s
 
     def __repr__(self):
         results = '\n'
