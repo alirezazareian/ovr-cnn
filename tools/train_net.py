@@ -70,7 +70,8 @@ def train(cfg, local_rank, distributed, tb_logger):
         cfg, model, optimizer, scheduler, output_dir, save_to_disk,
         backbone_prefix=cfg.MODEL.BACKBONE_PREFIX,
         load_emb_pred_from=(cfg.MODEL.MMSS_HEAD.DEFAULT_HEAD if
-                            cfg.MODEL.LOAD_EMB_PRED_FROM_MMSS_HEAD else None)
+                            cfg.MODEL.LOAD_EMB_PRED_FROM_MMSS_HEAD else None),
+        load_classifier=cfg.MODEL.LOAD_CLASSIFIER,
     )
     extra_checkpoint_data = checkpointer.load(cfg.MODEL.WEIGHT, load_trainer_state=cfg.MODEL.LOAD_TRAINER_STATE)
     if cfg.MODEL.LOAD_TRAINER_STATE:
@@ -88,6 +89,12 @@ def train(cfg, local_rank, distributed, tb_logger):
         data_loader_val = make_data_loader(cfg, is_train=False, is_distributed=distributed)[0]
     else:
         data_loader_val = None
+
+    if cfg.DATASETS.DATASET_ARGS.get('MULTI_LABEL_MODE', False):
+        data_loader.dataset.set_class_labels(
+            data_loader_val.dataset.categories,
+            data_loader_val.dataset.json_category_id_to_contiguous_id,
+        )
 
     checkpoint_period = cfg.SOLVER.CHECKPOINT_PERIOD
 

@@ -196,53 +196,53 @@ def do_train(
                         module.roi_heads['box'].predictor.set_class_embeddings(
                             data_loader.dataset.class_emb_mtx)
 
-            with torch.no_grad():
-                if cfg.SOLVER.USE_TRAIN_MODE_FOR_VALIDATION_LOSS:
-                    model.train()
-                else:
-                    model.eval()
-                for iteration_val, (images_val, targets_val, _) in enumerate(tqdm(data_loader_val)):
-                    images_val = images_val.to(device)
-                    try:
-                        targets_val = [target.to(device) for target in targets_val]
-                    except:
-                        pass
-                    loss_dict = model(images_val, targets_val)
-                    if isinstance(loss_dict, tuple):
-                        info_dict, loss_dict = loss_dict
+            if not cfg.SOLVER.SKIP_VAL_LOSS:
+                with torch.no_grad():
+                    if cfg.SOLVER.USE_TRAIN_MODE_FOR_VALIDATION_LOSS:
+                        model.train()
                     else:
-                        info_dict = None
-                    losses = sum(loss for loss in loss_dict.values())
-                    loss_dict_reduced = reduce_loss_dict(loss_dict)
-                    losses_reduced = sum(loss for loss in loss_dict_reduced.values())
-                    meters_val.update(loss=losses_reduced, **loss_dict_reduced)
-                    if info_dict is not None:
-                        info_dict_reduced = reduce_loss_dict(info_dict)
-                        meters_val.update(**info_dict_reduced)
+                        model.eval()
+                    for iteration_val, (images_val, targets_val, _) in enumerate(tqdm(data_loader_val)):
+                        images_val = images_val.to(device)
+                        try:
+                            targets_val = [target.to(device) for target in targets_val]
+                        except:
+                            pass
+                        loss_dict = model(images_val, targets_val)
+                        if isinstance(loss_dict, tuple):
+                            info_dict, loss_dict = loss_dict
+                        else:
+                            info_dict = None
+                        losses = sum(loss for loss in loss_dict.values())
+                        loss_dict_reduced = reduce_loss_dict(loss_dict)
+                        losses_reduced = sum(loss for loss in loss_dict_reduced.values())
+                        meters_val.update(loss=losses_reduced, **loss_dict_reduced)
+                        if info_dict is not None:
+                            info_dict_reduced = reduce_loss_dict(info_dict)
+                            meters_val.update(**info_dict_reduced)
+                logger.info(
+                    meters_val.delimiter.join(
+                        [
+                            "[Validation]: ",
+                            "eta: {eta}",
+                            "iter: {iter}",
+                            "{meters}",
+                            "lr: {lr:.6f}",
+                            "max mem: {memory:.0f}",
+                        ]
+                    ).format(
+                        eta=eta_string,
+                        iter=iteration,
+                        meters=str(meters_val),
+                        lr=optimizer.param_groups[0]["lr"],
+                        memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0,
+                    )
+                )
+                meters_val_dict = {k: v.global_avg for k, v in meters_val.meters.items()}
+                write_tf_summary(meters_val_dict, tb_logger, iteration,
+                                 prefix=f'validation/{cfg.DATASETS.TEST[0]}')
             model.train()
             synchronize()
-            logger.info(
-                meters_val.delimiter.join(
-                    [
-                        "[Validation]: ",
-                        "eta: {eta}",
-                        "iter: {iter}",
-                        "{meters}",
-                        "lr: {lr:.6f}",
-                        "max mem: {memory:.0f}",
-                    ]
-                ).format(
-                    eta=eta_string,
-                    iter=iteration,
-                    meters=str(meters_val),
-                    lr=optimizer.param_groups[0]["lr"],
-                    memory=torch.cuda.max_memory_allocated() / 1024.0 / 1024.0,
-                )
-            )
-
-            meters_val_dict = {k: v.global_avg for k, v in meters_val.meters.items()}
-            write_tf_summary(meters_val_dict, tb_logger, iteration,
-                             prefix=f'validation/{cfg.DATASETS.TEST[0]}')
 
         if iteration == max_iter:
             checkpointer.save("model_final", **arguments)

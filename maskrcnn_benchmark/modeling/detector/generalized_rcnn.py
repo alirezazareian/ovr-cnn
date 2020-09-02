@@ -29,12 +29,17 @@ class GeneralizedRCNN(nn.Module):
         self.backbone = build_backbone(cfg)
         self.rpn = build_rpn(cfg, self.backbone.out_channels)
         self.roi_heads = build_roi_heads(cfg, self.backbone.out_channels)
+        self.fix_rpn = cfg.MODEL.RPN.DONT_TRAIN
+        if self.fix_rpn:
+            for p in self.rpn.parameters():
+                p.requires_grad = False
 
     def forward(self, images, targets=None):
         """
         Arguments:
             images (list[Tensor] or ImageList): images to be processed
             targets (list[BoxList]): ground-truth boxes present in the image (optional)
+                [or (list[ndarray]) with image-level labels in weakly supervised settings]
 
         Returns:
             result (list[BoxList] or dict[Tensor]): the output from the model.
@@ -45,6 +50,8 @@ class GeneralizedRCNN(nn.Module):
         """
         if self.training and targets is None:
             raise ValueError("In training mode, targets should be passed")
+        if self.fix_rpn:
+            self.rpn.eval()
         images = to_image_list(images)
         features = self.backbone(images.tensors)
         proposals, proposal_losses = self.rpn(images, features, targets)

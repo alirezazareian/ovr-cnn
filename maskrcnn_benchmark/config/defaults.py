@@ -36,6 +36,7 @@ _C.MODEL.WEIGHT = ""
 _C.MODEL.BACKBONE_PREFIX = ""
 _C.MODEL.LOAD_TRAINER_STATE = True
 _C.MODEL.LOAD_EMB_PRED_FROM_MMSS_HEAD = False
+_C.MODEL.LOAD_CLASSIFIER = True
 
 # -----------------------------------------------------------------------------
 # INPUT
@@ -80,6 +81,11 @@ _C.DATASETS.DATASET_ARGS = CN()
 _C.DATASETS.DATASET_ARGS.LOAD_EMBEDDINGS = False
 _C.DATASETS.DATASET_ARGS.EMB_KEY = "GloVE"
 _C.DATASETS.DATASET_ARGS.EMB_DIM = 300
+# This flag is specially designed for COCOCaptions dataset.
+# When set to True, instead of passing the captions as target,
+# we convert captions to multi-label binary classification targets,
+# which can be used to train weakly supervised object detectors.
+_C.DATASETS.DATASET_ARGS.MULTI_LABEL_MODE = False
 
 # -----------------------------------------------------------------------------
 # DataLoader
@@ -243,6 +249,8 @@ _C.MODEL.RPN.FPN_POST_NMS_TOP_N_TEST = 2000
 _C.MODEL.RPN.FPN_POST_NMS_PER_BATCH = True
 # Custom rpn head, empty to use default conv or separable conv
 _C.MODEL.RPN.RPN_HEAD = "SingleConvRPNHead"
+# Fix RPN during training (used for weakly supervised training)
+_C.MODEL.RPN.DONT_TRAIN = False
 
 
 # ---------------------------------------------------------------------------- #
@@ -301,7 +309,8 @@ _C.MODEL.ROI_BOX_HEAD.EMBEDDING_BASED = False
 _C.MODEL.ROI_BOX_HEAD.LOSS_WEIGHT_BACKGROUND = 1.0
 _C.MODEL.ROI_BOX_HEAD.FREEZE_EMB_PRED = False
 _C.MODEL.ROI_BOX_HEAD.FREEZE_FEATURE_EXTRACTOR = False
-
+# This switches the architecture to Weakly Supervised Deep Detection Networks
+_C.MODEL.ROI_BOX_HEAD.WSDDN = False
 
 _C.MODEL.ROI_MASK_HEAD = CN()
 _C.MODEL.ROI_MASK_HEAD.FEATURE_EXTRACTOR = "ResNet50Conv5ROIFeatureExtractor"
@@ -504,6 +513,8 @@ _C.SOLVER.GRADIENT_ACCUMULATION_STEPS = 1
 # modeling and spatial dropout are also applied in training mode. So I added this option 
 # to set this False for self-supervised training.
 _C.SOLVER.USE_TRAIN_MODE_FOR_VALIDATION_LOSS = True
+# Skip computing validation loss in weakly supervised settings because it is not implemented
+_C.SOLVER.SKIP_VAL_LOSS = False
 
 # ---------------------------------------------------------------------------- #
 # Specific test options

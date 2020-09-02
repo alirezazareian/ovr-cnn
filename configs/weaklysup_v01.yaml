@@ -1,0 +1,42 @@
+MODEL:
+  META_ARCHITECTURE: "GeneralizedRCNN"
+  # Initial weight to load from fully supervised training
+  WEIGHT: "/home/alireza/workspace/ovo/runs/maskrcnn/004/model_final.pth"
+  # Set true when resuming training. Otherwise should be False to prevent loading trainer
+  # state from pretraining phase.
+  LOAD_TRAINER_STATE: False
+  # Don't load classifier weights because the number of classes will be different with the checkpoint
+  LOAD_CLASSIFIER: False
+  ROI_HEADS:
+    SCORE_THRESH: 0.0
+  ROI_BOX_HEAD:
+    # This specifies that we are training in weakly supervised mode.
+    WSDDN: True
+    NUM_CLASSES: 66
+    LOSS_WEIGHT_BACKGROUND: 1.0
+  BACKBONE:
+    FREEZE_CONV_BODY_AT: 3
+  RPN:
+    DONT_TRAIN: True
+DATASETS:
+  TRAIN: ("coco_captions_train",)
+  TEST: ("coco_generalized_zeroshot_val",)
+  DATASET_ARGS: 
+    # This specifies that we are training in weakly supervised mode, and we have to make multi-label
+    # binary target vectors from captions.
+    MULTI_LABEL_MODE: True
+    # Although we don't need the class embeddings in this experiment, we need the split metadata to be loaded
+    LOAD_EMBEDDINGS: True
+SOLVER:
+  BASE_LR: 0.005
+  WEIGHT_DECAY: 0.0001
+  STEPS: (90000, 150000)
+  MAX_ITER: 180000
+  IMS_PER_BATCH: 8
+  CHECKPOINT_PERIOD: 10000
+  TEST_PERIOD: 10000
+  LOG_PERIOD: 100
+  # CLIP_GRAD_NORM_AT: 5.0
+  SKIP_VAL_LOSS: True
+TEST:
+  IMS_PER_BATCH: 8

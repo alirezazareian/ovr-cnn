@@ -113,12 +113,15 @@ class DetectronCheckpointer(Checkpointer):
         replace_substr_dict={},
         backbone_prefix="",
         load_emb_pred_from=None,
+        load_classifier=True,
     ):
         if len(backbone_prefix) > 0:
             replace_substr_dict[backbone_prefix] = ''
         if load_emb_pred_from is not None:
             replace_substr_dict[f'mmss_heads.{load_emb_pred_from}.v2l_projection'
                                ] = 'roi_heads.box.predictor.emb_pred'
+        if not load_classifier:
+            replace_substr_dict[f'predictor.cls_score'] = 'predictor.DONT_LOAD.cls_score'
         super(DetectronCheckpointer, self).__init__(
             model, optimizer, scheduler, save_dir, save_to_disk, logger, replace_substr_dict
         )
