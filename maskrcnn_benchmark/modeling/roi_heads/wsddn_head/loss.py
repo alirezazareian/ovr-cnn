@@ -24,7 +24,7 @@ class WSDDNLossComputation(object):
         box_class_logits = class_logits.split(num_box_per_img, dim=0)
         image_class_logits = [torch.logsumexp(l, dim=0) for l in box_class_logits]
         image_class_logits = torch.stack(image_class_logits, dim=0)
-        negative_logits = torch.log(1.0 - torch.exp(image_class_logits))
+        negative_logits = torch.log(1.0 - torch.exp(image_class_logits) + 1e-6)
         classification_loss = (- (targets * image_class_logits) - 
             ((1 - targets) * negative_logits * self.background_weight))
         classification_loss = classification_loss.mean()

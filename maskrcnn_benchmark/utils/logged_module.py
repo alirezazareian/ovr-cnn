@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.distributed as dist
 
 def stats(tensor):
     t = tensor.cpu().detach().numpy()
@@ -23,14 +24,14 @@ class LoggedModule(nn.Module):
         s = stats(tensor)
         self.log_info[name] = s
         if self._log_print:
-            print(name, stats(tensor))
+            print(f'RANK {dist.get_rank()}: {name}', s)
         if self._log_raise_nan and torch.isnan(tensor).any():
             raise ValueError()
 
     def log_dict(self, d):
         self.log_info.update(d)
         if self._log_print:
-            print(d)
+            print(f'RANK {dist.get_rank()}: {d}')
         if self._log_raise_nan:
             for v in d.values():
                 if torch.isnan(v).any():
