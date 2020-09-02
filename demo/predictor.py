@@ -127,6 +127,7 @@ class COCODemo(object):
         "hair drier",
         "toothbrush",
     ]
+    UNSEEN_CAT_INDICES = []
 
     def __init__(
         self,
@@ -301,11 +302,12 @@ class COCODemo(object):
 
         colors = self.compute_colors_for_labels(labels).tolist()
 
-        for box, color in zip(boxes, colors):
+        for box, color, label in zip(boxes, colors, labels):
+            thickness = 6 if label in self.UNSEEN_CAT_INDICES else 2
             box = box.to(torch.int64)
             top_left, bottom_right = box[:2].tolist(), box[2:].tolist()
             image = cv2.rectangle(
-                image, tuple(top_left), tuple(bottom_right), tuple(color), 5
+                image, tuple(top_left), tuple(bottom_right), tuple(color), thickness
             )
 
         return image
@@ -393,15 +395,18 @@ class COCODemo(object):
         """
         scores = predictions.get_field("scores").tolist()
         labels = predictions.get_field("labels").tolist()
-        labels = [self.CATEGORIES[i] for i in labels]
+        label_names = [self.CATEGORIES[i] for i in labels]
+        label_names = [l.upper() if i in self.UNSEEN_CAT_INDICES else l 
+                       for i, l in zip(labels, label_names)]
         boxes = predictions.bbox
 
         template = "{}: {:.2f}"
-        for box, score, label in zip(boxes, scores, labels):
+        for box, score, lidx, lname in zip(boxes, scores, labels, label_names):
             x, y = box[:2]
-            s = template.format(label, score)
+            s = template.format(lname, score)
+            color = (96, 96, 255) if lidx in self.UNSEEN_CAT_INDICES else (255, 255, 255)
             cv2.putText(
-                image, s, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (255, 255, 255), 2
+                image, s, (x, y), cv2.FONT_HERSHEY_SIMPLEX, 0.7, color, 2
             )
 
         return image

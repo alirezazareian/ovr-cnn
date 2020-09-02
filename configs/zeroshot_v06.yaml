@@ -1,7 +1,7 @@
 MODEL:
   META_ARCHITECTURE: "GeneralizedRCNN"
   # Initial weight to load from image-caption training
-  WEIGHT: "/home/user/runs/vltrain/121/model_0040000.pth"
+  WEIGHT: "/home/alireza/workspace/ovo/runs-new/maskrcnn/130-rep/model_0120000.pth"
   # Trim the prefix of the checkpoint parameter names so they can be correctly loaded
   BACKBONE_PREFIX: "backbone.body."
   # Whether to load the vl_projection layer from the multimedia self-supervised learning head
