@@ -2,7 +2,7 @@
 
 This repository provides an implementation of image-caption pretraining and object detection fine-tuning to build an open-vocabulary object detector. The code is built on top of Facebook's [maskrcnn-benchmark](https://github.com/facebookresearch/maskrcnn-benchmark). We have also partially used some code from Facebook's [ViLbert](https://github.com/facebookresearch/vilbert-multi-task) and HuggingFace's [transformers](https://github.com/huggingface/transformers). We appreciate the work of everyone involved in those invaluable projects.
 
-![alt text](demo/demo_e2e_mask_rcnn_X_101_32x8d_FPN_1x.png "from http://cocodataset.org/#explore?id=345434")
+![alt text](demo/example.png)
 
 ## Jupyter notebook demo
 
@@ -38,9 +38,9 @@ python -m torch.distributed.launch --nproc_per_node=8 tools/train_net.py --confi
 You can evaluate using a similar command as above, by running [`tools/test_net.py`](tools/test_net.py) and providing the right checkpoint path to `MODEL.WEIGHT`
 
 
-## License
+## Pretrained Model
 
-This repository is released under the MIT license. See [LICENSE](LICENSE) for additional details.
+Our best model is available for download [here](https://www.dropbox.com/s/dd01zj2q9gih52k/model_final.pth?dl=0), and has been trained using [this config](configs/zeroshot_v06.yaml).
 
 ## Additional Notes
 
