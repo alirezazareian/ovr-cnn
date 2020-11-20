@@ -12,11 +12,6 @@ We provide a simple demo that creates a side-by-side video of a regular Faster R
 
 Check [INSTALL.md](INSTALL.md) for installation instructions. For the demo to create the video output, it might be necessary to build OpenCV from source instead of installing using pip.
 
-## Model Zoo and Baselines
-
-Pre-trained models, baselines and comparison with Detectron and mmdetection
-can be found in [MODEL_ZOO.md](MODEL_ZOO.md)
-
 ## Perform multimedia self-supervised pre-training on COCO captions dataset
 
 For the following examples to work, you need to download the COCO dataset.
@@ -38,7 +33,7 @@ python -m torch.distributed.launch --nproc_per_node=8 tools/train_net.py --confi
 You can evaluate using a similar command as above, by running [`tools/test_net.py`](tools/test_net.py) and providing the right checkpoint path to `MODEL.WEIGHT`
 
 
-## Pretrained Model
+## Pretrained Models
 
 Our best model is available for download [here](https://www.dropbox.com/s/dd01zj2q9gih52k/model_final.pth?dl=0), and has been trained using [this config](configs/zeroshot_v06.yaml).
 
