@@ -1,1 +1,5 @@
 theme: jekyll-theme-minimal
+title: OVR-CNN
+description: CVPR 2021 Oral Paper
+logo: https://raw.githubusercontent.com/alirezazareian/ovr-cnn/gh-pages/ovrcnn-logo.png
+show_downloads: true
