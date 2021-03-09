@@ -5,8 +5,8 @@ Kevin Dela Rosa, &nbsp; &nbsp; &nbsp; &nbsp;
 Derek Hao Hu, &nbsp; &nbsp; &nbsp; &nbsp; 
 [Shih-Fu Chang](https://www.ee.columbia.edu/~sfchang/)
 
-[Digital Video and Multimedia - Columbia University](https://www.ee.columbia.edu/ln/dvmm/)
-
+[Digital Video and Multimedia - Columbia University](https://www.ee.columbia.edu/ln/dvmm/),
+&nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 
 Snap Inc.
 
 A new object detection framework, which is more scalable, more practical, and more versatile than existing formulations.
