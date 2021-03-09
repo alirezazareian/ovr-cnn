@@ -1,37 +1,52 @@
-## Welcome to GitHub Pages
+# Open-Vocabulary Object Detection Using Captions
 
-You can use the [editor on GitHub](https://github.com/alirezazareian/ovr-cnn/edit/gh-pages/index.md) to maintain and preview the content for your website in Markdown files.
+[Alireza Zareian](https://www.linkedin.com/in/az2407/), &nbsp; &nbsp; &nbsp; &nbsp; 
+Kevin Dela Rosa, &nbsp; &nbsp; &nbsp; &nbsp; 
+Derek Hao Hu, &nbsp; &nbsp; &nbsp; &nbsp; 
+[Shih-Fu Chang](https://www.ee.columbia.edu/~sfchang/)
 
-Whenever you commit to this repository, GitHub Pages will run [Jekyll](https://jekyllrb.com/) to rebuild the pages in your site, from the content in your Markdown files.
+[Digital Video and Multimedia - Columbia University](https://www.ee.columbia.edu/ln/dvmm/)
 
-### Markdown
+Snap Inc.
 
-Markdown is a lightweight and easy-to-use syntax for styling your writing. It includes conventions for
+A new object detection framework, which is more scalable, more practical, and more versatile than existing formulations.
 
-```markdown
-Syntax highlighted code block
+Published and presented as an oral paper at CVPR 2021 (Conference on Computer Vision and Pattern Recognition).
 
-# Header 1
-## Header 2
-### Header 3
+<a href="#"><button>View Proceedings</button></a>
+&nbsp; &nbsp; &nbsp; &nbsp; 
+<a href="https://arxiv.org/abs/2011.10678"><button>Read on arXiv</button></a>
+&nbsp; &nbsp; &nbsp; &nbsp; 
+<a href="#"><button>Watch the Talk</button></a>
 
-- Bulleted
-- List
+### Abstract
 
-1. Numbered
-2. List
+Despite the remarkable accuracy of deep neural networks in object detection, they are costly to train and scale due to supervision requirements. Particularly, learning more object categories typically requires proportionally more bounding box annotations. Weakly supervised and zero-shot learning techniques have been explored to scale object detectors to more categories with less supervision, but they have not been as successful and widely adopted as supervised models. In this paper, we put forth a novel formulation of the object detection problem, namely open-vocabulary object detection, which is more general, more practical, and more effective than weakly supervised and zero-shot approaches. We propose a new method to train object detectors using bounding box annotations for a limited set of object categories, as well as image-caption pairs that cover a larger variety of objects at a significantly lower cost. We show that the proposed method can detect and localize objects for which no bounding box annotation is provided during training, at a significantly higher accuracy than zero-shot approaches. Meanwhile, objects with bounding box annotation can be detected almost as accurately as supervised methods, which is significantly better than weakly supervised baselines. Accordingly, we establish a new state of the art for scalable object detection.
 
-**Bold** and _Italic_ and `Code` text
-
-[Link](url) and ![Image](src)
+### Citation:
+```
+@InProceedings{Zareian_2021_CVPR,
+author={Zareian, Alireza and Rosa, Kevin Dela and Hu, Derek Hao and Chang, Shih-Fu},
+title = {Open-Vocabulary Object Detection Using Captions},
+booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+month = {June},
+year = {2021}
+}
 ```
 
-For more details see [GitHub Flavored Markdown](https://guides.github.com/features/mastering-markdown/).
+### Quick Overview:
 
-### Jekyll Themes
+![Method](ovrcnn-method.png)
 
-Your Pages site will use the layout and styles from the Jekyll theme you have selected in your [repository settings](https://github.com/alirezazareian/ovr-cnn/settings). The name of this theme is saved in the Jekyll `_config.yml` configuration file.
+An overview of Open-Vocabulary Object Detection. We propose a two-stage training framework where we first (1) construct a visual-semantic space using low-cost image-caption pairs, and then (2) learn object detection using object annotations for a set of base classes. During test (3), the goal is to detect object categories beyond base classes, by exploiting the semantic space.
 
-### Support or Contact
+### Demo:
 
-Having trouble with Pages? Check out our [documentation](https://docs.github.com/categories/github-pages-basics/) or [contact support](https://support.github.com/contact) and we’ll help you sort it out.
+![Demo](ovrcnn-demo.gif)
+
+Faster R-CNN (left) vs. Open-Vocabulary R-CNN (right). Both models were trained without any ELEPHANT, AIRPLANE, or BUS bounding boxes.
+
+### Oral Talk:
+
+Comming soon ...
+<!--- [<img src="">](#) --->
