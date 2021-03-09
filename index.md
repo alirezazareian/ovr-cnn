@@ -13,11 +13,11 @@ A new object detection framework, which is more scalable, more practical, and mo
 
 Published and presented as an oral paper at CVPR 2021 (Conference on Computer Vision and Pattern Recognition).
 
-<a href="#"><button>View Proceedings</button></a>
+<a href="#"><button disabled>View Proceedings</button></a>
 &nbsp; &nbsp; &nbsp; &nbsp; 
 <a href="https://arxiv.org/abs/2011.10678"><button>Read on arXiv</button></a>
 &nbsp; &nbsp; &nbsp; &nbsp; 
-<a href="#"><button>Watch the Talk</button></a>
+<a href="#"><button disabled>Watch the Talk</button></a>
 
 ### Abstract
 
@@ -48,5 +48,5 @@ Qualitative results of our OVR-CNN model, detecting both base and target classes
 
 ### Oral Talk:
 
-Comming soon ...
+Coming soon ...
 <!--- [<img src="">](#) --->
