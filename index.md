@@ -36,15 +36,15 @@ year = {2021}
 
 ### Quick Overview:
 
-![Method](ovrcnn-method.png)
+![Method](ovrcnn-method.jpg)
 
 An overview of Open-Vocabulary Object Detection. We propose a two-stage training framework where we first (1) construct a visual-semantic space using low-cost image-caption pairs, and then (2) learn object detection using object annotations for a set of base classes. During test (3), the goal is to detect object categories beyond base classes, by exploiting the semantic space.
 
-### Demo:
+### Examples:
 
-![Demo](ovrcnn-demo.gif)
+![Examples](ovrcnn-examples.jpg)
 
-Faster R-CNN (left) vs. Open-Vocabulary R-CNN (right). Both models were trained without any ELEPHANT, AIRPLANE, or BUS bounding boxes.
+Qualitative results of our OVR-CNN model, detecting both base and target classes. Target classes are shown with larger font, thicker border, and uppercase.
 
 ### Oral Talk:
 
