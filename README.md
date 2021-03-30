@@ -1,6 +1,6 @@
 # Open Vocabulary Object Detection
 
-This repository provides an implementation of image-caption pretraining and object detection fine-tuning to build an open-vocabulary object detector. The code is built on top of Facebook's [maskrcnn-benchmark](https://github.com/facebookresearch/maskrcnn-benchmark). We have also partially used some code from Facebook's [ViLbert](https://github.com/facebookresearch/vilbert-multi-task) and HuggingFace's [transformers](https://github.com/huggingface/transformers). We appreciate the work of everyone involved in those invaluable projects.
+This repository provides an implementation of the CVPR 2021 oral paper [Open-Vocabulary Object Detection Using Captions](https://arxiv.org/pdf/2011.10678.pdf). The code is built on top of Facebook's [maskrcnn-benchmark](https://github.com/facebookresearch/maskrcnn-benchmark). We have also partially used some code from Facebook's [ViLbert](https://github.com/facebookresearch/vilbert-multi-task) and HuggingFace's [transformers](https://github.com/huggingface/transformers). We appreciate the work of everyone involved in those invaluable projects.
 
 ![alt text](demo/example.jpg)
 
