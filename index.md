@@ -13,11 +13,11 @@ A new object detection framework, which is more scalable, more practical, and mo
 
 Published and presented as an oral paper at CVPR 2021 (Conference on Computer Vision and Pattern Recognition).
 
-<a href="#"><button disabled>View Proceedings</button></a>
+<a href="https://openaccess.thecvf.com/content/CVPR2021/html/Zareian_Open-Vocabulary_Object_Detection_Using_Captions_CVPR_2021_paper.html"><button>View Proceedings</button></a>
 &nbsp; &nbsp; &nbsp; &nbsp; 
 <a href="https://arxiv.org/abs/2011.10678"><button>Read on arXiv</button></a>
 &nbsp; &nbsp; &nbsp; &nbsp; 
-<a href="#"><button disabled>Watch the Talk</button></a>
+<a href="https://www.youtube.com/watch?v=MELbWKtadlY"><button>Watch the Talk</button></a>
 
 ### Abstract
 
@@ -26,11 +26,12 @@ Despite the remarkable accuracy of deep neural networks in object detection, the
 ### Citation:
 ```
 @InProceedings{Zareian_2021_CVPR,
-author={Zareian, Alireza and Rosa, Kevin Dela and Hu, Derek Hao and Chang, Shih-Fu},
-title = {Open-Vocabulary Object Detection Using Captions},
-booktitle = {IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-month = {June},
-year = {2021}
+    author    = {Zareian, Alireza and Rosa, Kevin Dela and Hu, Derek Hao and Chang, Shih-Fu},
+    title     = {Open-Vocabulary Object Detection Using Captions},
+    booktitle = {Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
+    month     = {June},
+    year      = {2021},
+    pages     = {14393-14402}
 }
 ```
 
@@ -48,5 +49,4 @@ Qualitative results of our OVR-CNN model, detecting both base and target classes
 
 ### Oral Talk:
 
-Coming soon ...
-<!--- [<img src="">](#) --->
+[<img src="https://img.youtube.com/vi/MELbWKtadlY/0.jpg">](https://www.youtube.com/watch?v=MELbWKtadlY)
