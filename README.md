@@ -37,6 +37,8 @@ You can evaluate using a similar command as above, by running [`tools/test_net.p
 
 Our best model is available for download [here](https://www.dropbox.com/s/dd01zj2q9gih52k/model_final.pth?dl=0), and has been trained using [this config](configs/zeroshot_v06.yaml).
 
+**Note:** If the link is broken, please [contact me directly](mailto:alireza@cs.columbia.edu).
+
 ## Additional Notes
 
 We did not test all the functionality of `maskrcnn_benchmark` under the zero-shot settings, such as instance segmentation, or feature pyramid network. Anything besides the provided config files may not work.
