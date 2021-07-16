@@ -35,9 +35,12 @@ You can evaluate using a similar command as above, by running [`tools/test_net.p
 
 ## Pretrained Models
 
-Our best model is available for download [here](https://www.dropbox.com/s/dd01zj2q9gih52k/model_final.pth?dl=0), and has been trained using [this config](configs/zeroshot_v06.yaml).
+Our best model is available for download [here](https://drive.google.com/file/d/1lP7LFRCPKIbKjXK_n6xCDn80I7WEH3-h/view?usp=sharing), and has been trained using [this config](configs/zeroshot_v06.yaml).
 
-**Note:** If the link is broken, please [contact me directly](mailto:alireza@cs.columbia.edu).
+The pretrained model before fine-tuning on object detection can be found [here](https://drive.google.com/file/d/1mFnAZVnn2NT2Ys841EPOMaQ6jnvFXPWJ/view?usp=sharing), and has been trained using [this config](configs/mmss_v07.yaml).
+
+
+**Note:** If the links are broken, please [contact me directly](mailto:alireza@cs.columbia.edu).
 
 ## Additional Notes
 
