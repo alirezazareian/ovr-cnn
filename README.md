@@ -46,4 +46,4 @@ The pretrained model before fine-tuning on object detection can be found [here](
 
 We did not test all the functionality of `maskrcnn_benchmark` under the zero-shot settings, such as instance segmentation, or feature pyramid network. Anything besides the provided config files may not work.
 
-Created and maintained by [Alireza Zareian](https://www.linkedin.com/in/az2407).
+Created and maintained by [Alireza Zareian](https://www.linkedin.com/in/alzareian/).
